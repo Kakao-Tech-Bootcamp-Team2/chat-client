@@ -29,7 +29,7 @@ class FileService {
     const user = authService.getCurrentUser();
     if (!user?.token) throw new Error("인증 정보가 없습니다.");
 
-    const preURL = `${this.baseUrl}/upload/init`;
+    const preURL = `${this.baseUrl}/api/file-service/upload/init`;
     const response = await axios.post(
       preURL,
       {
@@ -66,7 +66,7 @@ class FileService {
     const user = authService.getCurrentUser();
     if (!user?.token) throw new Error("인증 정보가 없습니다.");
 
-    const completeURL = `${this.baseUrl}/upload/complete/${uploadId}`;
+    const completeURL = `${this.baseUrl}/api/files/upload/complete`;
     const response = await axios.post(
       completeURL,
       {},

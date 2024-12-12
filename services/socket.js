@@ -82,9 +82,17 @@ class SocketService {
           this.cleanup(CLEANUP_REASONS.RECONNECT);
         }
 
-        const socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL;
-        // %3해서 배정
-
+        const randomNum = Math.floor(Math.random() * 4) + 1;
+        let socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL;
+        if (randomNum === 1) {
+          socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL_1;
+        } else if (randomNum === 2) {
+          socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL_2;
+        } else if (randomNum === 3) {
+          socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL_3;
+        } else {
+          socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL_4;
+        }
         console.log("[Socket] Connecting to:", socketUrl);
 
         this.socket = io(socketUrl, {
