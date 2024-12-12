@@ -24,7 +24,6 @@ const axiosInstance = axios.create({
   timeout: 30000,
   withCredentials: true,
   headers: {
-    Accept: "application/json",
     "Content-Type": "application/json",
   },
 });
@@ -37,7 +36,7 @@ function getBaseURLByServerType(serverType) {
     case "chatServer":
       return CHAT_SERVER_URL;
     default:
-      return API_GATEWAY_URL || "http://localhost:5000";
+      return API_GATEWAY_URL;
   }
 }
 
@@ -76,7 +75,7 @@ axiosInstance.interceptors.request.use(
       if (config.serverType) {
         config.baseURL = getBaseURLByServerType(config.serverType);
       } else {
-        config.baseURL = "http://localhost:5000";
+        config.baseURL = API_GATEWAY_URL;
       }
 
       if (config.method !== "get" && !config.data) {
@@ -232,6 +231,7 @@ axiosInstance.interceptors.response.use(
           const user = authService.getCurrentUser();
           if (user?.token) {
             config.headers["x-auth-token"] = user.token;
+
             return axiosInstance(config);
           }
         }

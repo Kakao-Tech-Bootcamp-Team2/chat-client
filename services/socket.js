@@ -83,6 +83,8 @@ class SocketService {
         }
 
         const socketUrl = process.env.NEXT_PUBLIC_CHAT_API_URL;
+        // %3해서 배정
+
         console.log("[Socket] Connecting to:", socketUrl);
 
         this.socket = io(socketUrl, {

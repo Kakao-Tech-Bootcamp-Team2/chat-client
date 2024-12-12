@@ -338,6 +338,7 @@ class AuthService {
 
       user.lastActivity = Date.now();
       localStorage.setItem("user", JSON.stringify(user));
+
       return user;
     } catch (error) {
       console.error("Get current user error:", error);
@@ -425,7 +426,7 @@ class AuthService {
 
   async checkServerConnection() {
     try {
-      const response = await api.get("/health", {
+      const response = await api.get("/api/health", {
         timeout: 5000,
         retry: 2,
         retryDelay: 1000,

@@ -180,7 +180,7 @@ export const useRoomHandling = (
         }
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_CHAT_API_URL}/api/rooms/${roomId}`,
+          `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/rooms/${roomId}`,
           {
             method: "GET",
             headers: {
@@ -380,6 +380,7 @@ export const useRoomHandling = (
         // 2. Fetch Room Data
         console.log("Fetching room data...");
         const roomData = await fetchRoomData(router.query.room);
+
         setRoom(roomData);
 
         // 3. Setup Event Listeners

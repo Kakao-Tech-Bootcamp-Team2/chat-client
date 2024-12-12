@@ -36,7 +36,7 @@ function NewChatRoom() {
   const joinRoom = async (roomId, password) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/api/rooms/${roomId}/join`,
+        `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/rooms/${roomId}/join`,
         {
           method: "POST",
           headers: {
@@ -85,7 +85,7 @@ function NewChatRoom() {
 
       // 채팅방 생성
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/api/rooms`,
+        `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/rooms`,
         {
           method: "POST",
           headers: {

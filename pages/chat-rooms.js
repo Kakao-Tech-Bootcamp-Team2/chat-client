@@ -234,7 +234,7 @@ function ChatRoomsComponent() {
   );
 
   const handleFetchError = useCallback(
-    (error, isLoadingMore) => {
+    (error) => {
       let errorMessage = "채팅방 목록을 불러오는데 실패했습니다.";
       let errorType = "danger";
       let showRetry = !isRetrying;
@@ -245,17 +245,17 @@ function ChatRoomsComponent() {
         errorType = "warning";
         showRetry = true;
 
-        if (!isLoadingMore && retryCount < RETRY_CONFIG.maxRetries) {
+        if (!loadingMore && retryCount < RETRY_CONFIG.maxRetries) {
           const delay = getRetryDelay(retryCount);
           setRetryCount((prev) => prev + 1);
           setTimeout(() => {
             setIsRetrying(true);
-            fetchRooms(isLoadingMore);
+            fetchRooms(loadingMore);
           }, delay);
         }
       }
 
-      if (!isLoadingMore) {
+      if (!loadingMore) {
         setError({
           title: "채팅방 목록 로드 실패",
           message: errorMessage,
@@ -273,9 +273,9 @@ function ChatRoomsComponent() {
     async (retryAttempt = 0) => {
       try {
         setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-
-        const response = await axiosInstance.get("/health", {
-          timeout: 5000,
+        console.log("connecting health check");
+        const response = await axiosInstance.get("/api/health", {
+          timeout: 15000,
           serverType: "apiGateway", // 요청을 보낼 서버 타입
           retryCount: 0, // 초기 재시도 횟수
           maxRetries: 1, // 재시도 최대 횟수
@@ -287,10 +287,9 @@ function ChatRoomsComponent() {
         if (isConnected) {
           setConnectionStatus(CONNECTION_STATUS.CONNECTED);
           setRetryCount(0);
-          return true;
+          console.log("connected log");
         }
-
-        throw new Error("Server not ready");
+        return true;
       } catch (error) {
         console.error(`Connection attempt ${retryAttempt + 1} failed:`, error);
 
@@ -306,84 +305,76 @@ function ChatRoomsComponent() {
     },
     [getRetryDelay]
   );
-
   const fetchRooms = useCallback(
     async (isLoadingMore = false) => {
-      if (!currentUser?.token || isLoadingRef.current) {
-        console.log("Fetch prevented:", {
-          hasToken: !!currentUser?.token,
-          isLoading: isLoadingRef.current,
-        });
-        return;
-      }
+      if (isLoadingRef.current) return; // 이미 로딩 중이라면 실행 중단
 
       try {
         isLoadingRef.current = true;
-        console.log("Fetching rooms:", { isLoadingMore, pageIndex });
 
         if (!isLoadingMore) {
           setLoading(true);
           setError(null);
-        } else {
-          setLoadingMore(true);
         }
-
-        await attemptConnection();
 
         const response = await axiosInstance.get("/api/rooms", {
           params: {
             page: isLoadingMore ? pageIndex : 0,
             pageSize,
-            sortField: sorting?.[0]?.id || "defaultField", // 기본 정렬 필드 설정
+            sortField: sorting?.[0]?.id || "defaultField",
             sortOrder: sorting?.[0]?.desc ? "desc" : "asc",
           },
-          serverType: "chatServer",
         });
-
-        if (!response?.data?.data) {
-          throw new Error("INVALID_RESPONSE");
-        }
 
         const { data, metadata } = response.data;
-        console.log("Fetched rooms:", {
-          count: data.length,
-          hasMore: metadata.hasMore,
-        });
-
-        setRooms((prev) => {
-          if (isLoadingMore) {
-            const existingIds = new Set(prev.map((room) => room._id));
-            const newRooms = data.filter((room) => !existingIds.has(room._id));
-            return [...prev, ...newRooms];
-          }
-          return data;
-        });
-
+        setConnectionStatus(CONNECTION_STATUS.CONNECTED);
+        setRooms((prev) => (isLoadingMore ? [...prev, ...data] : data));
         setHasMore(data.length === pageSize && metadata.hasMore);
-
-        if (isInitialLoad) {
-          setIsInitialLoad(false);
-        }
       } catch (error) {
-        console.error("Rooms fetch error:", error);
-        handleFetchError(error, isLoadingMore);
+        console.error("Fetch rooms error:", error);
+        setError({
+          title: "오류",
+          message: "채팅방 목록을 가져올 수 없습니다.",
+        });
       } finally {
-        if (!isLoadingMore) {
-          setLoading(false);
-        }
-        setLoadingMore(false);
+        if (!isLoadingMore) setLoading(false);
         isLoadingRef.current = false;
+        setLoadingMore(false);
       }
     },
-    [
-      currentUser,
-      pageIndex,
-      pageSize,
-      sorting,
-      isInitialLoad,
-      attemptConnection,
-      handleFetchError,
-    ]
+    [pageIndex, pageSize, sorting]
+  );
+  axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const config = error.config || {};
+      config.retryCount = config.retryCount || 0;
+
+      if (error.response?.status === 403) {
+        console.error("403 Forbidden: 권한 문제 발생");
+        return Promise.reject(error);
+      }
+
+      if (
+        isRetryableError(error) &&
+        config.retryCount < RETRY_CONFIG.maxRetries
+      ) {
+        config.retryCount++;
+        const delay = getRetryDelay(config.retryCount);
+
+        console.log(
+          `Retrying request (${config.retryCount}/${
+            RETRY_CONFIG.maxRetries
+          }) after ${Math.round(delay)}ms:`,
+          config.url
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return axiosInstance(config);
+      }
+
+      return Promise.reject(error);
+    }
   );
 
   const handleLoadMore = useCallback(async () => {
@@ -412,7 +403,7 @@ function ChatRoomsComponent() {
           sortField: sorting[0]?.id,
           sortOrder: sorting[0]?.desc ? "desc" : "asc",
         },
-        serverType: "chatServer", // 요청 대상 서버 타입 지정
+        serverType: "apiGateway", // 요청 대상 서버 타입 지정
       });
 
       if (response.data?.success) {
@@ -451,6 +442,10 @@ function ChatRoomsComponent() {
   }, [pageIndex, fetchRooms]);
 
   useEffect(() => {
+    fetchRooms(false);
+  }, []);
+
+  useEffect(() => {
     if (!currentUser) return;
 
     const initFetch = async () => {
@@ -472,7 +467,7 @@ function ChatRoomsComponent() {
       if (connectionStatus === CONNECTION_STATUS.CHECKING) {
         attemptConnection();
       }
-    }, 5000);
+    }, 10000);
 
     return () => {
       if (connectionCheckTimerRef.current) {
@@ -595,6 +590,7 @@ function ChatRoomsComponent() {
   }, [currentUser, handleAuthError]);
 
   const handleJoinRoom = async (roomId) => {
+    console.log(roomId);
     if (connectionStatus !== CONNECTION_STATUS.CONNECTED) {
       setError({
         title: "채팅방 입장 실패",
@@ -609,7 +605,7 @@ function ChatRoomsComponent() {
         `/api/rooms/${roomId}/join`,
         {},
         {
-          serverType: "chatServer",
+          serverType: "apiGateway",
           timeout: 5000,
         }
       );
