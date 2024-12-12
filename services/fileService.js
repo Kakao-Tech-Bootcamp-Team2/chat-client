@@ -4,7 +4,7 @@ import { Toast } from "../components/Toast";
 
 class FileService {
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_FILE_API_URL;
+    this.baseUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
     this.uploadLimit = 50 * 1024 * 1024; // 50MB
     this.retryAttempts = 3;
     this.retryDelay = 1000;
@@ -385,7 +385,7 @@ class FileService {
   getFileUrl(filename, forPreview = false) {
     if (!filename) return "";
 
-    const baseUrl = process.env.NEXT_PUBLIC_FILE_API_URL || "";
+    const baseUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || "";
     const endpoint = forPreview ? "view" : "download";
     return `${baseUrl}/api/files/${endpoint}/${filename}`;
   }
@@ -393,7 +393,7 @@ class FileService {
   getPreviewUrl(file, withAuth = true) {
     if (!file?.filename) return "";
 
-    const baseUrl = `${process.env.NEXT_PUBLIC_FILE_API_URL}/api/files/view/${file.filename}`;
+    const baseUrl = `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/files/view/${file.filename}`;
 
     if (!withAuth) return baseUrl;
 

@@ -3,7 +3,7 @@ import socketService from "./socket";
 import { Toast } from "../components/Toast";
 import axiosInstance from "./axios";
 
-const API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 console.log("Initializing Auth Service with API URL:", API_URL);
 
@@ -373,7 +373,7 @@ class AuthService {
             "x-auth-token": user.token,
             "x-session-id": user.sessionId,
           },
-          serverType: "authServer",
+          serverType: "apiGateway",
         }
       );
 

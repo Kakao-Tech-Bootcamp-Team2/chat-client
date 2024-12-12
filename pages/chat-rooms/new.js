@@ -1,33 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { Card } from '@goorm-dev/vapor-core';
-import { 
-  Button, 
-  Input, 
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { Card } from "@goorm-dev/vapor-core";
+import {
+  Button,
+  Input,
   Text,
   Alert,
   Switch,
   FormGroup,
-  Label
-} from '@goorm-dev/vapor-components';
-import { AlertCircle } from 'lucide-react';
-import authService from '../../services/authService';
+  Label,
+} from "@goorm-dev/vapor-components";
+import { AlertCircle } from "lucide-react";
+import authService from "../../services/authService";
 
 function NewChatRoom() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
+    name: "",
     hasPassword: false,
-    password: ''
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (!user) {
-      router.push('/');
+      router.push("/");
       return;
     }
     setCurrentUser(user);
@@ -35,64 +35,70 @@ function NewChatRoom() {
 
   const joinRoom = async (roomId, password) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/join`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': currentUser.token,
-          'x-session-id': currentUser.sessionId
-        },
-        body: JSON.stringify({ password })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/api/rooms/${roomId}/join`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": currentUser.token,
+            "x-session-id": currentUser.sessionId,
+          },
+          body: JSON.stringify({ password }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || '채팅방 입장에 실패했습니다.');
+        throw new Error(errorData.message || "채팅방 입장에 실패했습니다.");
       }
 
       // 채팅방으로 이동
       router.push(`/chat?room=${roomId}`);
     } catch (error) {
-      console.error('Room join error:', error);
+      console.error("Room join error:", error);
       throw error;
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
-      setError('채팅방 이름을 입력해주세요.');
+      setError("채팅방 이름을 입력해주세요.");
       return;
     }
 
     if (formData.hasPassword && !formData.password) {
-      setError('비밀번호를 입력해주세요.');
+      setError("비밀번호를 입력해주세요.");
       return;
     }
 
     if (!currentUser?.token) {
-      setError('인증 정보가 없습니다. 다시 로그인해주세요.');
+      setError("인증 정보가 없습니다. 다시 로그인해주세요.");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       // 채팅방 생성
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': currentUser.token,
-          'x-session-id': currentUser.sessionId
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          password: formData.hasPassword ? formData.password : undefined
-        })
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_CHAT_API_URL}/api/rooms`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": currentUser.token,
+            "x-session-id": currentUser.sessionId,
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            password: formData.hasPassword ? formData.password : undefined,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -105,24 +111,26 @@ function NewChatRoom() {
               return handleSubmit(e);
             }
           } catch (refreshError) {
-            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+            throw new Error("인증이 만료되었습니다. 다시 로그인해주세요.");
           }
         }
-        throw new Error(errorData.message || '채팅방 생성에 실패했습니다.');
+        throw new Error(errorData.message || "채팅방 생성에 실패했습니다.");
       }
 
       const { data } = await response.json();
-      
-      // 생성된 채팅방에 자동으로 입장
-      await joinRoom(data._id, formData.hasPassword ? formData.password : undefined);
 
+      // 생성된 채팅방에 자동으로 입장
+      await joinRoom(
+        data._id,
+        formData.hasPassword ? formData.password : undefined
+      );
     } catch (error) {
-      console.error('Room creation/join error:', error);
+      console.error("Room creation/join error:", error);
       setError(error.message);
-      
-      if (error.message.includes('인증') || error.message.includes('만료')) {
+
+      if (error.message.includes("인증") || error.message.includes("만료")) {
         authService.logout();
-        router.push('/');
+        router.push("/");
       }
     } finally {
       setLoading(false);
@@ -131,10 +139,10 @@ function NewChatRoom() {
 
   const handleSwitchChange = (e) => {
     const checked = e.target.checked;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       hasPassword: checked,
-      password: checked ? prev.password : ''
+      password: checked ? prev.password : "",
     }));
   };
 
@@ -142,15 +150,13 @@ function NewChatRoom() {
     <div className="auth-container">
       <Card className="auth-card">
         <Card.Header>
-          <Text as="h5" typography="heading5">새 채팅방</Text>
+          <Text as="h5" typography="heading5">
+            새 채팅방
+          </Text>
         </Card.Header>
         <Card.Body className="p-8">
-
           {error && (
-            <Alert
-              color="danger"
-              className="mb-6"
-            >
+            <Alert color="danger" className="mb-6">
               <AlertCircle className="w-4 h-4 mr-2" />
               {error}
             </Alert>
@@ -163,10 +169,12 @@ function NewChatRoom() {
                 id="roomName"
                 name="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  name: e.target.value
-                }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
                 placeholder="채팅방 이름을 입력하세요"
                 disabled={loading}
               />
@@ -194,10 +202,12 @@ function NewChatRoom() {
                   name="password"
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    password: e.target.value
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
+                  }
                   placeholder="비밀번호를 입력하세요"
                   disabled={loading}
                 />
@@ -208,9 +218,13 @@ function NewChatRoom() {
               type="submit"
               variant="primary"
               size="lg"
-              disabled={loading || !formData.name.trim() || (formData.hasPassword && !formData.password)}
+              disabled={
+                loading ||
+                !formData.name.trim() ||
+                (formData.hasPassword && !formData.password)
+              }
             >
-              {loading ? '생성 중...' : '채팅방 만들기'}
+              {loading ? "생성 중..." : "채팅방 만들기"}
             </Button>
           </form>
         </Card.Body>

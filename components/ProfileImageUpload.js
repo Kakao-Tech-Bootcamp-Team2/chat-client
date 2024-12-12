@@ -1,22 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from '@goorm-dev/vapor-core';
-import { Alert } from '@goorm-dev/vapor-components';
-import { Camera, X } from 'lucide-react';
-import authService from '../services/authService';
-import PersistentAvatar from './common/PersistentAvatar';
+import React, { useState, useRef, useEffect } from "react";
+import { Button } from "@goorm-dev/vapor-core";
+import { Alert } from "@goorm-dev/vapor-components";
+import { Camera, X } from "lucide-react";
+import authService from "../services/authService";
+import PersistentAvatar from "./common/PersistentAvatar";
 
 const ProfileImageUpload = ({ currentImage, onImageChange }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   // 프로필 이미지 URL 생성
   const getProfileImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    return imagePath.startsWith('http') ? 
-      imagePath : 
-      `${process.env.NEXT_PUBLIC_API_URL}${imagePath}`;
+    return imagePath.startsWith("http")
+      ? imagePath
+      : `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}${imagePath}`;
   };
 
   // 컴포넌트 마운트 시 이미지 설정
@@ -31,17 +31,17 @@ const ProfileImageUpload = ({ currentImage, onImageChange }) => {
 
     try {
       // 이미지 파일 검증
-      if (!file.type.startsWith('image/')) {
-        throw new Error('이미지 파일만 업로드할 수 있습니다.');
+      if (!file.type.startsWith("image/")) {
+        throw new Error("이미지 파일만 업로드할 수 있습니다.");
       }
 
       // 파일 크기 제한 (5MB)
       if (file.size > 5 * 1024 * 1024) {
-        throw new Error('파일 크기는 5MB를 초과할 수 없습니다.');
+        throw new Error("파일 크기는 5MB를 초과할 수 없습니다.");
       }
 
       setUploading(true);
-      setError('');
+      setError("");
 
       // 파일 미리보기 생성
       const objectUrl = URL.createObjectURL(file);
@@ -50,56 +50,58 @@ const ProfileImageUpload = ({ currentImage, onImageChange }) => {
       // 현재 사용자의 인증 정보 가져오기
       const user = authService.getCurrentUser();
       if (!user?.token) {
-        throw new Error('인증 정보가 없습니다.');
+        throw new Error("인증 정보가 없습니다.");
       }
 
       // FormData 생성
       const formData = new FormData();
-      formData.append('profileImage', file);
+      formData.append("profileImage", file);
 
       // 파일 업로드 요청
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/profile-image`, {
-        method: 'POST',
-        headers: {
-          'x-auth-token': user.token,
-          'x-session-id': user.sessionId
-        },
-        body: formData
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/users/profile-image`,
+        {
+          method: "POST",
+          headers: {
+            "x-auth-token": user.token,
+            "x-session-id": user.sessionId,
+          },
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || '이미지 업로드에 실패했습니다.');
+        throw new Error(errorData.message || "이미지 업로드에 실패했습니다.");
       }
 
       const data = await response.json();
-      
+
       // 로컬 스토리지의 사용자 정보 업데이트
       const updatedUser = {
         ...user,
-        profileImage: data.imageUrl
+        profileImage: data.imageUrl,
       };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
       // 부모 컴포넌트에 변경 알림
       onImageChange(data.imageUrl);
 
       // 전역 이벤트 발생
-      window.dispatchEvent(new Event('userProfileUpdate'));
-
+      window.dispatchEvent(new Event("userProfileUpdate"));
     } catch (error) {
-      console.error('Image upload error:', error);
+      console.error("Image upload error:", error);
       setError(error.message);
       setPreviewUrl(getProfileImageUrl(currentImage));
-      
+
       // 기존 objectUrl 정리
-      if (previewUrl && previewUrl.startsWith('blob:')) {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -107,46 +109,48 @@ const ProfileImageUpload = ({ currentImage, onImageChange }) => {
   const handleRemoveImage = async () => {
     try {
       setUploading(true);
-      setError('');
+      setError("");
 
       const user = authService.getCurrentUser();
       if (!user?.token) {
-        throw new Error('인증 정보가 없습니다.');
+        throw new Error("인증 정보가 없습니다.");
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/profile-image`, {
-        method: 'DELETE',
-        headers: {
-          'x-auth-token': user.token,
-          'x-session-id': user.sessionId
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/users/profile-image`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-auth-token": user.token,
+            "x-session-id": user.sessionId,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || '이미지 삭제에 실패했습니다.');
+        throw new Error(errorData.message || "이미지 삭제에 실패했습니다.");
       }
 
       // 로컬 스토리지의 사용자 정보 업데이트
       const updatedUser = {
         ...user,
-        profileImage: ''
+        profileImage: "",
       };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
       // 기존 objectUrl 정리
-      if (previewUrl && previewUrl.startsWith('blob:')) {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
 
       setPreviewUrl(null);
-      onImageChange('');
+      onImageChange("");
 
       // 전역 이벤트 발생
-      window.dispatchEvent(new Event('userProfileUpdate'));
-
+      window.dispatchEvent(new Event("userProfileUpdate"));
     } catch (error) {
-      console.error('Image removal error:', error);
+      console.error("Image removal error:", error);
       setError(error.message);
     } finally {
       setUploading(false);
@@ -156,7 +160,7 @@ const ProfileImageUpload = ({ currentImage, onImageChange }) => {
   // 컴포넌트 언마운트 시 cleanup
   useEffect(() => {
     return () => {
-      if (previewUrl && previewUrl.startsWith('blob:')) {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
     };
@@ -174,7 +178,7 @@ const ProfileImageUpload = ({ currentImage, onImageChange }) => {
           className="w-24 h-24 mx-auto mb-6"
           showInitials={true}
         />
-        
+
         <div className="mt-6">
           <Button
             size="md"

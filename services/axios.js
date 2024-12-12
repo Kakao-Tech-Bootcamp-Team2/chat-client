@@ -4,10 +4,6 @@ import authService from "./authService";
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 const CHAT_SERVER_URL = process.env.NEXT_PUBLIC_CHAT_API_URL;
-const AUTH_SERVER_URL = process.env.NEXT_PUBLIC_AUTH_API_URL;
-const FILE_SERVER_URL = process.env.NEXT_PUBLIC_FILE_API_URL;
-const CHAT_MANAGEMENT_SERVER_URL =
-  process.env.NEXT_PUBLIC_CHAT_MANAGEMENT_API_URL;
 
 const RETRY_CONFIG = {
   maxRetries: 3,
@@ -40,14 +36,8 @@ function getBaseURLByServerType(serverType) {
       return API_GATEWAY_URL;
     case "chatServer":
       return CHAT_SERVER_URL;
-    case "authServer":
-      return AUTH_SERVER_URL;
-    case "fileServer":
-      return FILE_SERVER_URL;
-    case "chatManagementServer":
-      return CHAT_MANAGEMENT_SERVER_URL;
     default:
-      return "http://localhost:5000";
+      return API_GATEWAY_URL || "http://localhost:5000";
   }
 }
 

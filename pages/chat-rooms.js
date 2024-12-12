@@ -27,8 +27,6 @@ import axiosInstance from "../services/axios";
 import { withAuth } from "../middleware/withAuth";
 import { Toast } from "../components/Toast";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 const CONNECTION_STATUS = {
   CHECKING: "checking",
   CONNECTING: "connecting",
