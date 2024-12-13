@@ -1,97 +1,105 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@goorm-dev/vapor-core';
-import { 
-  FileText, 
-  Image, 
-  Film, 
-  CheckCheck, 
-  Check, 
-  Music, 
-  ExternalLink, 
+import React, { useState, useEffect } from "react";
+import { Button } from "@goorm-dev/vapor-core";
+import {
+  FileText,
+  Image,
+  Film,
+  CheckCheck,
+  Check,
+  Music,
+  ExternalLink,
   Download,
-  AlertCircle 
-} from 'lucide-react';
-import { Text, Alert } from '@goorm-dev/vapor-components';
-import PersistentAvatar from '../../common/PersistentAvatar';
-import MessageContent from './MessageContent';
-import MessageActions from './MessageActions';
-import ReadStatus from '../ReadStatus';
-import fileService from '../../../services/fileService';
-import authService from '../../../services/authService';
+  AlertCircle,
+} from "lucide-react";
+import { Text, Alert } from "@goorm-dev/vapor-components";
+import PersistentAvatar from "../../common/PersistentAvatar";
+import MessageContent from "./MessageContent";
+import MessageActions from "./MessageActions";
+import ReadStatus from "../ReadStatus";
+import fileService from "../../../services/fileService";
+import authService from "../../../services/authService";
 
-const FileMessage = ({ 
-  msg = {}, 
-  isMine = false, 
+const FileMessage = ({
+  msg = {},
+  isMine = false,
   currentUser = null,
   onReactionAdd,
   onReactionRemove,
   room = null,
   messageRef,
-  socketRef
+  socketRef,
 }) => {
   const [error, setError] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
     if (msg?.file) {
+      console.log(msg);
       const url = fileService.getPreviewUrl(msg.file, true);
+
       setPreviewUrl(url);
-      console.debug('Preview URL generated:', {
-        filename: msg.file.filename,
-        url
+      console.debug("Preview URL generated:", {
+        filename: JSON.parse(msg.file).filename,
+        url,
       });
     }
   }, [msg?.file]);
 
   if (!msg?.file) {
-    console.error('File data is missing:', msg);
+    console.error("File data is missing:", msg);
     return null;
   }
 
-  const formattedTime = new Date(msg.timestamp).toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/\./g, '년').replace(/\s/g, ' ').replace('일 ', '일 ');
+  const formattedTime = new Date(msg.timestamp)
+    .toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace(/\./g, "년")
+    .replace(/\s/g, " ")
+    .replace("일 ", "일 ");
 
   const getFileIcon = () => {
-    const mimetype = msg.file?.mimetype || '';
+    var files = JSON.parse(msg.file);
+    const mimetype = files?.mimetype || "";
     const iconProps = { className: "w-5 h-5 flex-shrink-0" };
 
-    if (mimetype.startsWith('image/')) return <Image {...iconProps} color="#00C853" />;
-    if (mimetype.startsWith('video/')) return <Film {...iconProps} color="#2196F3" />;
-    if (mimetype.startsWith('audio/')) return <Music {...iconProps} color="#9C27B0" />;
+    if (mimetype.startsWith("image/"))
+      return <Image {...iconProps} color="#00C853" />;
+    if (mimetype.startsWith("video/"))
+      return <Film {...iconProps} color="#2196F3" />;
+    if (mimetype.startsWith("audio/"))
+      return <Music {...iconProps} color="#9C27B0" />;
     return <FileText {...iconProps} color="#ffffff" />;
   };
 
   const getDecodedFilename = (encodedFilename) => {
     try {
-      if (!encodedFilename) return 'Unknown File';
-      
-      const base64 = encodedFilename
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-      
+      if (!encodedFilename) return "Unknown File";
+
+      const base64 = encodedFilename.replace(/-/g, "+").replace(/_/g, "/");
+
       const pad = base64.length % 4;
-      const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
-      
+      const paddedBase64 = pad ? base64 + "=".repeat(4 - pad) : base64;
+
       if (paddedBase64.match(/^[A-Za-z0-9+/=]+$/)) {
-        return Buffer.from(paddedBase64, 'base64').toString('utf8');
+        return Buffer.from(paddedBase64, "base64").toString("utf8");
       }
 
       return decodeURIComponent(encodedFilename);
     } catch (error) {
-      console.error('Filename decoding error:', error);
+      console.error("Filename decoding error:", error);
       return encodedFilename;
     }
   };
 
   const renderAvatar = () => (
-    <PersistentAvatar 
+    <PersistentAvatar
       user={isMine ? currentUser : msg.sender}
       size="lg"
       className="flex-shrink-0"
@@ -103,30 +111,31 @@ const FileMessage = ({
     e.preventDefault();
     e.stopPropagation();
     setError(null);
-    
+
     try {
-      if (!msg.file?.filename) {
-        throw new Error('파일 정보가 없습니다.');
+      var files = JSON.parse(msg.file);
+      console.log("????????????");
+      console.log(files);
+      if (!files.filename) {
+        throw new Error("파일 정보가 없습니다.");
       }
 
       const user = authService.getCurrentUser();
       if (!user?.token || !user?.sessionId) {
-        throw new Error('인증 정보가 없습니다.');
+        throw new Error("인증 정보가 없습니다.");
       }
 
-      const baseUrl = fileService.getFileUrl(msg.file.filename, false);
-      const authenticatedUrl = `${baseUrl}?token=${encodeURIComponent(user.token)}&sessionId=${encodeURIComponent(user.sessionId)}&download=true`;
+      const baseUrl = files.url;
 
-      const link = document.createElement('a');
-      link.href = authenticatedUrl;
-      link.download = getDecodedFilename(msg.file.originalname);
+      const link = document.createElement("a");
+      link.href = baseUrl;
+      link.download = getDecodedFilename(files.originalname);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
     } catch (error) {
-      console.error('File download error:', error);
-      setError(error.message || '파일 다운로드 중 오류가 발생했습니다.');
+      console.error("File download error:", error);
+      setError(error.message || "파일 다운로드 중 오류가 발생했습니다.");
     }
   };
 
@@ -136,32 +145,33 @@ const FileMessage = ({
     setError(null);
 
     try {
-      if (!msg.file?.filename) {
-        throw new Error('파일 정보가 없습니다.');
+      var files = JSON.parse(msg.file);
+      if (!files?.filename) {
+        throw new Error("파일 정보가 없습니다.");
       }
 
       const user = authService.getCurrentUser();
       if (!user?.token || !user?.sessionId) {
-        throw new Error('인증 정보가 없습니다.');
+        throw new Error("인증 정보가 없습니다.");
       }
 
-      const baseUrl = fileService.getFileUrl(msg.file.filename, true);
-      const authenticatedUrl = `${baseUrl}?token=${encodeURIComponent(user.token)}&sessionId=${encodeURIComponent(user.sessionId)}`;
+      const baseUrl = files.url;
 
-      const newWindow = window.open(authenticatedUrl, '_blank');
+      const newWindow = window.open(baseUrl, "_blank");
       if (!newWindow) {
-        throw new Error('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+        throw new Error("팝업이 차단되었습니다. 팝업 차단을 해제해주세요.");
       }
       newWindow.opener = null;
     } catch (error) {
-      console.error('File view error:', error);
-      setError(error.message || '파일 보기 중 오류가 발생했습니다.');
+      console.error("File view error:", error);
+      setError(error.message || "파일 보기 중 오류가 발생했습니다.");
     }
   };
 
   const renderImagePreview = (originalname) => {
     try {
-      if (!msg?.file?.filename) {
+      var files = JSON.parse(msg.file);
+      if (!files?.filename) {
         return (
           <div className="flex items-center justify-center h-full bg-gray-100">
             <Image className="w-8 h-8 text-gray-400" />
@@ -171,36 +181,37 @@ const FileMessage = ({
 
       const user = authService.getCurrentUser();
       if (!user?.token || !user?.sessionId) {
-        throw new Error('인증 정보가 없습니다.');
+        throw new Error("인증 정보가 없습니다.");
       }
-
+      console.log("noowowoowowow");
+      console.log(msg);
       const previewUrl = fileService.getPreviewUrl(msg.file, true);
 
       return (
         <div className="bg-transparent-pattern">
-          <img 
+          <img
             src={previewUrl}
             alt={originalname}
             className="object-cover rounded-sm"
             onLoad={() => {
-              console.debug('Image loaded successfully:', originalname);
+              console.debug("Image loaded successfully:", originalname);
             }}
             onError={(e) => {
-              console.error('Image load error:', {
+              console.error("Image load error:", {
                 error: e.error,
-                originalname
+                originalname,
               });
-              e.target.onerror = null; 
-              e.target.src = '/images/placeholder-image.png';
-              setError('이미지를 불러올 수 없습니다.');
+              e.target.onerror = null;
+              e.target.src = "/images/placeholder-image.png";
+              setError("이미지를 불러올 수 없습니다.");
             }}
             loading="lazy"
           />
         </div>
       );
     } catch (error) {
-      console.error('Image preview error:', error);
-      setError(error.message || '이미지 미리보기를 불러올 수 없습니다.');
+      console.error("Image preview error:", error);
+      setError(error.message || "이미지 미리보기를 불러올 수 없습니다.");
       return (
         <div className="flex items-center justify-center h-full bg-gray-100">
           <Image className="w-8 h-8 text-gray-400" />
@@ -210,10 +221,13 @@ const FileMessage = ({
   };
 
   const renderFilePreview = () => {
-    const mimetype = msg.file?.mimetype || '';
-    const originalname = getDecodedFilename(msg.file?.originalname || 'Unknown File');
-    const size = fileService.formatFileSize(msg.file?.size || 0);
-    
+    var files = JSON.parse(msg.file);
+    const mimetype = files.mimetype || "";
+    const originalname = getDecodedFilename(
+      files.originalname || "Unknown File"
+    );
+    const size = fileService.formatFileSize(files.size || 0);
+
     const FileActions = () => (
       <div className="file-actions mt-2 pt-2 border-t border-gray-200">
         <Button
@@ -235,19 +249,21 @@ const FileMessage = ({
       </div>
     );
 
-    const previewWrapperClass = 
-      "overflow-hidden";
-    const fileInfoClass = 
-      "flex items-center gap-3 p-1 mt-2";
+    const previewWrapperClass = "overflow-hidden";
+    const fileInfoClass = "flex items-center gap-3 p-1 mt-2";
 
-    if (mimetype.startsWith('image/')) {
+    if (mimetype.startsWith("image/")) {
       return (
         <div className={previewWrapperClass}>
           {renderImagePreview(originalname)}
           <div className={fileInfoClass}>
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{getFileIcon()} {originalname}</div>
-              <Text typography="body2" as="span">{size}</Text>
+              <div className="font-medium truncate">
+                {getFileIcon()} {originalname}
+              </div>
+              <Text typography="body2" as="span">
+                {size}
+              </Text>
             </div>
           </div>
           <FileActions />
@@ -255,12 +271,12 @@ const FileMessage = ({
       );
     }
 
-    if (mimetype.startsWith('video/')) {
+    if (mimetype.startsWith("video/")) {
       return (
         <div className={previewWrapperClass}>
           <div>
             {previewUrl ? (
-              <video 
+              <video
                 className="object-cover rounded-sm"
                 controls
                 preload="metadata"
@@ -279,8 +295,12 @@ const FileMessage = ({
           </div>
           <div className={fileInfoClass}>
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{getFileIcon()} {originalname}</div>
-              <Text typography="body2" as="span">{size}</Text>
+              <div className="font-medium truncate">
+                {getFileIcon()} {originalname}
+              </div>
+              <Text typography="body2" as="span">
+                {size}
+              </Text>
             </div>
           </div>
           <FileActions />
@@ -288,18 +308,22 @@ const FileMessage = ({
       );
     }
 
-    if (mimetype.startsWith('audio/')) {
+    if (mimetype.startsWith("audio/")) {
       return (
         <div className={previewWrapperClass}>
           <div className={fileInfoClass}>
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{getFileIcon()} {originalname}</div>
-              <Text typography="body2" as="span">{size}</Text>
+              <div className="font-medium truncate">
+                {getFileIcon()} {originalname}
+              </div>
+              <Text typography="body2" as="span">
+                {size}
+              </Text>
             </div>
           </div>
           <div className="px-3 pb-3">
             {previewUrl && (
-              <audio 
+              <audio
                 className="w-full"
                 controls
                 preload="metadata"
@@ -320,8 +344,12 @@ const FileMessage = ({
       <div className={previewWrapperClass}>
         <div className={fileInfoClass}>
           <div className="flex-1 min-w-0">
-            <div className="font-medium truncate">{getFileIcon()} {originalname}</div>
-            <Text typography="body2" as="span">{size}</Text>
+            <div className="font-medium truncate">
+              {getFileIcon()} {originalname}
+            </div>
+            <Text typography="body2" as="span">
+              {size}
+            </Text>
           </div>
         </div>
         <FileActions />
@@ -331,18 +359,22 @@ const FileMessage = ({
 
   return (
     <div className="messages">
-      <div className={`message-group ${isMine ? 'mine' : 'yours'}`}>
+      <div className={`message-group ${isMine ? "mine" : "yours"}`}>
         <div className="message-sender-info">
           {renderAvatar()}
           <span className="sender-name">
-            {isMine ? '나' : msg.sender?.name}
+            {isMine ? "나" : msg.sender?.name}
           </span>
         </div>
-        <div className={`message-bubble ${isMine ? 'message-mine' : 'message-other'} last file-message`}>
+        <div
+          className={`message-bubble ${
+            isMine ? "message-mine" : "message-other"
+          } last file-message`}
+        >
           <div className="message-content">
             {error && (
-              <Alert 
-                color="danger" 
+              <Alert
+                color="danger"
                 className="mb-3"
                 onClose={() => setError(null)}
               >
@@ -358,13 +390,13 @@ const FileMessage = ({
             )}
           </div>
           <div className="message-footer">
-            <div 
-              className="message-time mr-3" 
-              title={new Date(msg.timestamp).toLocaleString('ko-KR')}
+            <div
+              className="message-time mr-3"
+              title={new Date(msg.timestamp).toLocaleString("ko-KR")}
             >
               {formattedTime}
             </div>
-            <ReadStatus 
+            <ReadStatus
               messageType={msg.type}
               participants={room.participants}
               readers={msg.readers}
@@ -375,7 +407,7 @@ const FileMessage = ({
             />
           </div>
         </div>
-        <MessageActions 
+        <MessageActions
           messageId={msg._id}
           messageContent={msg.content}
           reactions={msg.reactions}
@@ -384,7 +416,7 @@ const FileMessage = ({
           onReactionRemove={onReactionRemove}
           isMine={isMine}
           room={room}
-        />        
+        />
       </div>
     </div>
   );
@@ -393,14 +425,14 @@ const FileMessage = ({
 FileMessage.defaultProps = {
   msg: {
     file: {
-      mimetype: '',
-      filename: '',
-      originalname: '',
-      size: 0
-    }
+      mimetype: "",
+      filename: "",
+      originalname: "",
+      size: 0,
+    },
   },
   isMine: false,
-  currentUser: null
+  currentUser: null,
 };
 
 export default React.memo(FileMessage);

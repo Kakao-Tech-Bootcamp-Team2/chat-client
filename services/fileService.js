@@ -1,6 +1,7 @@
 import axios from "axios";
 import authService from "./authService";
 import { Toast } from "../components/Toast";
+import axiosInstance from "./axios";
 
 class FileService {
   constructor() {
@@ -29,7 +30,7 @@ class FileService {
     const user = authService.getCurrentUser();
     if (!user?.token) throw new Error("인증 정보가 없습니다.");
 
-    const preURL = `${this.baseUrl}/api/file-service/upload/init`;
+    const preURL = `${this.baseUrl}/api/files/upload/init`;
     const response = await axios.post(
       preURL,
       {
@@ -50,7 +51,9 @@ class FileService {
 
   async uploadToS3(uploadUrl, file, onProgress) {
     await axios.put(uploadUrl, file, {
-      headers: { "Content-Type": file.type },
+      headers: {
+        "Content-Type": file.type,
+      },
       onUploadProgress: (progressEvent) => {
         if (onProgress) {
           const percentCompleted = Math.round(
@@ -66,14 +69,8 @@ class FileService {
     const user = authService.getCurrentUser();
     if (!user?.token) throw new Error("인증 정보가 없습니다.");
 
-    const completeURL = `${this.baseUrl}/api/files/upload/complete`;
-    const response = await axios.post(
-      completeURL,
-      {},
-      {
-        headers: { "x-auth-token": user.token },
-      }
-    );
+    const completeURL = `${this.baseUrl}/api/files/upload/complete/${uploadId}`;
+    const response = await axiosInstance.post(completeURL, {});
 
     return response.data.data.file;
   }
@@ -81,10 +78,13 @@ class FileService {
   async uploadFile(file, onProgress) {
     const validation = await this.validateFile(file);
     if (!validation.success) return validation;
-
     const uploadData = await this.initializeUpload(file);
+
+    console.log(uploadData);
     await this.uploadToS3(uploadData.uploadUrl, file, onProgress);
     const uploadedFileData = await this.completeUpload(uploadData.uploadId);
+    console.log("tq");
+    console.log(uploadedFileData);
 
     return { success: true, data: uploadedFileData };
   }
@@ -133,24 +133,12 @@ class FileService {
   }
 
   getPreviewUrl(file, withAuth = true) {
+    console.log(file);
+    file = JSON.parse(file);
+
     if (!file?.filename) throw new Error("파일 정보가 제공되지 않았습니다.");
 
-    const baseUrl =
-      this.baseUrl || process.env.NEXT_PUBLIC_API_GATEWAY_URL || "";
-    const previewUrl = `${baseUrl}/api/files/view/${file.filename}`;
-
-    if (withAuth) {
-      const user = authService.getCurrentUser();
-      if (!user?.token || !user?.sessionId) {
-        throw new Error("인증 정보가 없습니다.");
-      }
-
-      const url = new URL(previewUrl);
-      url.searchParams.append("token", encodeURIComponent(user.token));
-      url.searchParams.append("sessionId", encodeURIComponent(user.sessionId));
-
-      return url.toString();
-    }
+    const previewUrl = file.url;
 
     return previewUrl;
   }

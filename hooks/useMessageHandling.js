@@ -121,25 +121,17 @@ export const useMessageHandling = (
             (progress) => setUploadProgress(progress)
           );
 
-          // check
-          // 업로드 흐름 체크
-
-          if (!uploadResponse.success) {
-            throw new Error(
-              uploadResponse.message || "파일 업로드에 실패했습니다."
-            );
-          }
-
           socketRef.current.emit("chatMessage", {
             room: roomId,
             type: "file",
             content: messageData.content || "",
             fileData: {
-              _id: uploadResponse.data.file._id,
-              filename: uploadResponse.data.file.filename,
-              originalname: uploadResponse.data.file.originalname,
-              mimetype: uploadResponse.data.file.mimetype,
-              size: uploadResponse.data.file.size,
+              _id: uploadResponse.data.id,
+              filename: uploadResponse.data.filename,
+              originalname: uploadResponse.data.originalname,
+              mimetype: uploadResponse.data.mimetype,
+              size: uploadResponse.data.size,
+              url: uploadResponse.data.url,
             },
           });
 

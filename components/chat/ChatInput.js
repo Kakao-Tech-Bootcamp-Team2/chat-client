@@ -63,6 +63,8 @@ const ChatInput = forwardRef(
             type: file.type,
             size: file.size,
           };
+          localStorage.setItem("url", filePreview.url);
+          localStorage.setItem("name", filePreview.name);
 
           setFiles((prev) => [...prev, filePreview]);
           setUploadError(null);
